@@ -1,0 +1,35 @@
+﻿@model WeatherApp.Models.Weather.WeatherResponse
+
+<h2>Weather Information for @Model.CityName, @Model.CountryName</h2>
+
+<div>
+    <h3>Coordinates</h3>
+    <p>Latitude: @Model.Coord.Lat</p>
+    <p>Longitude: @Model.Coord.Lon</p>
+</div>
+
+<div>
+    <h3>Weather</h3>
+    <p>Main: @Model.Weather.Main</p>
+    <p>Description: @Model.Weather.Description</p>
+    
+</div>
+
+<div>
+    <h3>Main Information</h3>
+    <p>Temperature: @Model.Main.Temp °C</p>
+    <p>Pressure: @Model.Main.Pressure hPa</p>
+    <p>Humidity: @Model.Main.Humidity %</p>
+</div>
+
+<div>
+    <h3>Wind</h3>
+    <p>Speed: @Model.Wind.Speed m/s</p>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ViewBag.ErrorMessage
+    </div>
+}

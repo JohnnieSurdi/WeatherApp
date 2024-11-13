@@ -1,0 +1,11 @@
+﻿@{
+    ViewData["Title"] = "Weather Search";
+}
+
+<h2>Weather Search by City:</h2>
+
+<form asp-action="SearchByCity" method="post">
+    <label for="cityName">Enter city name:</label>
+    <input type="text" id="cityName" name="cityName" required />
+    <button type="submit">Search by City</button>
+</form>

@@ -1,25 +1,32 @@
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using log4net.Config;
 using WeatherApp.Logging;
+using WeatherApp.Repositories;
 using WeatherApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<ICacheService, CacheService>();
+
 //Configure logger
 var log4netConfigFilePath = Path.Combine(builder.Environment.ContentRootPath, "Configs", "log4net.config");
 XmlConfigurator.Configure(new FileInfo(log4netConfigFilePath));
-
-//Register logger
 builder.Services.AddSingleton<IWeatherLogger, Logger>();
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add HttpClient to use for API calls
 builder.Services.AddHttpClient();
 
-// Add WeatherService for dependency injection
+// Register AWS services
+var awsOptions = builder.Configuration.GetAWSOptions();
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonDynamoDB>();
+builder.Services.AddScoped<IDynamoDBContext, DynamoDBContext>();
+
 builder.Services.AddScoped<WeatherApp.Api.WeatherApi>();
-builder.Services.AddScoped<WeatherService>();
+builder.Services.AddScoped<IWeatherService, WeatherService>();
+builder.Services.AddScoped<IWeatherSearchRepository, WeatherSearchRepository>();
 
 var app = builder.Build();
 

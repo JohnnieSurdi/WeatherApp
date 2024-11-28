@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WeatherApp.Logging;
+using WeatherApp.Repositories;
 using WeatherApp.Services;
 
 namespace WeatherApp.Controllers
@@ -7,17 +8,26 @@ namespace WeatherApp.Controllers
     public class WeatherController : Controller
     {
         private readonly IWeatherService _weatherService;
-        private readonly IWeatherLogger _logger;
+        private readonly IWeatherSearchRepository _weatherSearchRepository;
+        private readonly WeatherApp.Logging.ILogger _logger;
 
-        public WeatherController(IWeatherService weatherService, IWeatherLogger logger)
+        public WeatherController(IWeatherService weatherService, IWeatherSearchRepository weatherSearchRepository, WeatherApp.Logging.ILogger logger)
         {
             _weatherService = weatherService;
+            _weatherSearchRepository = weatherSearchRepository;
             _logger = logger;
         }
 
         public IActionResult Index()
         {
             return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RecentSearches()
+        {
+            var allSearches = await _weatherSearchRepository.GetRecentWeatherSearchesAsync();
+            return View(allSearches);
         }
 
         [HttpPost]

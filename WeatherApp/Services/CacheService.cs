@@ -10,10 +10,17 @@ namespace WeatherApp.Services
         {
             _memoryCache = memoryCache;
         }
-        public T GetOrCreate<T>(string key, Func<ICacheEntry, T> createItem)
-        {
-            return _memoryCache.GetOrCreate(key, createItem);
-        }
 
+        public async Task<T> GetCachedOrFetchAsync<T>(string key, Func<Task<T>> fetchFunc, TimeSpan cacheDuration)
+        {
+            if (_memoryCache.TryGetValue(key, out T cachedValue))
+            {
+                return cachedValue;
+            }
+
+            var data = await fetchFunc();
+            _memoryCache.Set(key, data, cacheDuration);
+            return data;
+        }
     }
 }

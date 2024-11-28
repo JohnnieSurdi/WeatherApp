@@ -17,6 +17,13 @@ namespace WeatherApp.Repositories
             await _dynamoDbContext.SaveAsync(record);
         }
 
-        
+        public async Task<IEnumerable<WeatherSearchRecord>> GetRecentWeatherSearchesAsync()
+        {
+            var result = await _dynamoDbContext.ScanAsync<WeatherSearchRecord>(null).GetRemainingAsync();
+            Console.WriteLine($"Found {result.Count} results.");
+
+            return result;
+        }
+
     }
 }

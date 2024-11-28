@@ -14,16 +14,16 @@ namespace WeatherApp.Mappers.DBMappers
             return new WeatherSearchRecord
             {
                 Id = Guid.NewGuid().ToString(),
-                CityName = weatherResponse.CityName,
-                CountryName = weatherResponse.CountryName,
-                Lon = weatherResponse.Lon,
-                Lat = weatherResponse.Lat,
-                Main = weatherResponse.Main,
-                Description = weatherResponse.Description,
-                Temp = weatherResponse.Temp,
-                Pressure = weatherResponse.Pressure,
-                Humidity = weatherResponse.Humidity,
-                Speed = weatherResponse.Speed,
+                CityName = weatherResponse.Location.CityName,
+                CountryName = weatherResponse.Location.CountryName,
+                Lon = weatherResponse.Location.Lon,
+                Lat = weatherResponse.Location.Lat,
+                Main = weatherResponse.Weather.Main,
+                Description = weatherResponse.Weather.Description,
+                Temp = weatherResponse.Weather.Temp,
+                Pressure = weatherResponse.Weather.Pressure,
+                Humidity = weatherResponse.Weather.Humidity,
+                Speed = weatherResponse.Weather.Speed,
                 Timestamp = DateTime.UtcNow
             };
         }

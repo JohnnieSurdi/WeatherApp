@@ -4,6 +4,6 @@ namespace WeatherApp.Services
 {
     public interface ICacheService
     {
-        T GetOrCreate<T>(string key, Func<ICacheEntry, T> createItem);
+        Task<T> GetCachedOrFetchAsync<T>(string key, Func<Task<T>> fetchFunc, TimeSpan cacheDuration);
     }
 }

@@ -1,0 +1,41 @@
+﻿@model IEnumerable<WeatherApp.Models.Database.WeatherSearchRecord>
+
+@{
+    ViewData["Title"] = "All Weather Searches";
+}
+
+<h2>All Weather Searches</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>City</th>
+            <th>Country</th>
+            <th>Temperature</th>
+            <th>Pressure</th>
+            <th>Humidity</th>
+            <th>Wind Speed</th>
+            <th>Description</th>
+            <th>Timestamp</th>
+            <th>Longitude</th>
+            <th>Latitude</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var search in Model)
+        {
+            <tr>
+                <td>@search.CityName</td>
+                <td>@search.CountryName</td>
+                <td>@search.Temp</td>
+                <td>@search.Pressure</td>
+                <td>@search.Humidity</td>
+                <td>@search.Speed</td>
+                <td>@search.Description</td>
+                <td>@search.Timestamp</td>
+                <td>@search.Lon</td>
+                <td>@search.Lat</td>
+            </tr>
+        }
+    </tbody>
+</table>

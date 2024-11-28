@@ -22,16 +22,22 @@ namespace WeatherApp.Mappers
 
             return new WeatherResponse
             {
-                CityName = json.Value<string>("name") ?? string.Empty,
-                CountryName = json.SelectToken("sys.country")?.ToString() ?? string.Empty,
-                Lon = json.SelectToken("coord.lon")?.Value<double>() ?? 0,
-                Lat = json.SelectToken("coord.lat")?.Value<double>() ?? 0,
-                Main = weatherMain,
-                Description = weatherDescription,
-                Temp = json.SelectToken("main.temp")?.Value<double>() ?? 0,
-                Pressure = json.SelectToken("main.pressure")?.Value<int>() ?? 0,
-                Humidity = json.SelectToken("main.humidity")?.Value<int>() ?? 0,
-                Speed = json.SelectToken("wind.speed")?.Value<double>() ?? 0
+                Location = new LocationData
+                {
+                    CityName = json.Value<string>("name") ?? string.Empty,
+                    CountryName = json.SelectToken("sys.country")?.ToString() ?? string.Empty,
+                    Lon = json.SelectToken("coord.lon")?.Value<double>() ?? 0,
+                    Lat = json.SelectToken("coord.lat")?.Value<double>() ?? 0
+                },
+                Weather = new WeatherData
+                {
+                    Main = weatherMain,
+                    Description = weatherDescription,
+                    Temp = json.SelectToken("main.temp")?.Value<double>() ?? 0,
+                    Pressure = json.SelectToken("main.pressure")?.Value<int>() ?? 0,
+                    Humidity = json.SelectToken("main.humidity")?.Value<int>() ?? 0,
+                    Speed = json.SelectToken("wind.speed")?.Value<double>() ?? 0
+                }
             };
         }
     }

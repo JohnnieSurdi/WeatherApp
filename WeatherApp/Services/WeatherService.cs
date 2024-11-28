@@ -6,21 +6,19 @@ using WeatherApp.Models.Weather;
 using WeatherApp.Logging;
 using WeatherApp.Repositories;
 using WeatherApp.Mappers.DBMappers;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace WeatherApp.Services
 {
     public class WeatherService : IWeatherService
     {
         private readonly WeatherApi _weatherApi;
-        private readonly IWeatherLogger _logger;
+        private readonly WeatherApp.Logging.ILogger _logger;
         private readonly IWeatherSearchRepository _weatherRepository;
         private readonly ICacheService _cacheService;
 
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(60);
-        private readonly (double, double) londonCoords = (51.4875167, -0.1687007);
 
-        public WeatherService(WeatherApi weatherApi, IWeatherLogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService)
+        public WeatherService(WeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService)
         {
             _weatherApi = weatherApi;
             _logger = logger;
@@ -32,17 +30,13 @@ namespace WeatherApp.Services
         {
             string cacheKey = $"weather:{latitude},{longitude}";
 
-            return _cacheService.GetOrCreate(
+            return await _cacheService.GetCachedOrFetchAsync(
                 cacheKey,
-                entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-
-                    try
+                async () =>
                     {
                         _logger.Info($"Fetching weather data for coordinates: {latitude}, {longitude}");
 
-                        var content = _weatherApi.GetWeatherDataAsync(latitude, longitude).Result;
+                        var content = await _weatherApi.GetWeatherDataAsync(latitude, longitude);
                         var jsonResponse = JObject.Parse(content);
 
                         var weatherResponse = WeatherResponseMapper.MapFromJson(jsonResponse);
@@ -51,27 +45,17 @@ namespace WeatherApp.Services
                         _weatherRepository.SaveWeatherSearchRecordAsync(record).Wait();
 
                         return weatherResponse;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error($"Error fetching weather data for coordinates {latitude},{longitude}: {ex.Message}");
-                        throw new Exception("Error fetching weather data", ex);
-                    }
-                });
+                    },
+                    _cacheDuration
+            );
         }
 
         public async Task<(double? lat, double? lon)> SearchByCityAsync(string cityName)
         {
-            try
-            {
-                _logger.Info($"Fetching data for city: {cityName}");
-
                 var cacheKey = $"coords-{cityName.ToLower()}";
 
-                return await _cacheService.GetOrCreate(cacheKey, async entry =>
+                return await _cacheService.GetCachedOrFetchAsync(cacheKey, async () =>
                     {
-                        entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-
                         _logger.Info($"Fetching coordinates for city: {cityName}");
 
                         var response = await _weatherApi.GetLocationDataAsync(cityName);
@@ -88,18 +72,10 @@ namespace WeatherApp.Services
                                 return (latitude, longitude);
                             }
                         }
-
-                        _logger.Warn($"No valid coordinates found for city: {cityName}. Instead look at London's weather: ");
-                        return londonCoords;
-                    });
-
-            }
-
-            catch (Exception ex)
-            {
-                _logger.Error($"Unexpected error while fetching data for city {cityName}: {ex.Message}");
-                throw new Exception("Unexpected error fetching location data.", ex);
-            }
+                        throw new KeyNotFoundException($"No coordinates found for city: {cityName}");
+                    },
+                    _cacheDuration
+                    ); 
         }
     }
 }

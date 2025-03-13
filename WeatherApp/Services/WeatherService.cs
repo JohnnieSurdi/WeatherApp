@@ -6,19 +6,19 @@ using WeatherApp.Models.Weather;
 using WeatherApp.Logging;
 using WeatherApp.Repositories;
 using WeatherApp.Mappers.DBMappers;
+using WeatherApp.Models.Location;
 
 namespace WeatherApp.Services
 {
     public class WeatherService : IWeatherService
     {
-        private readonly WeatherApi _weatherApi;
+        private readonly IWeatherApi _weatherApi;
         private readonly WeatherApp.Logging.ILogger _logger;
         private readonly IWeatherSearchRepository _weatherRepository;
         private readonly ICacheService _cacheService;
-
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(60);
 
-        public WeatherService(WeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService)
+        public WeatherService(IWeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService)
         {
             _weatherApi = weatherApi;
             _logger = logger;
@@ -59,12 +59,13 @@ namespace WeatherApp.Services
                         _logger.Info($"Fetching coordinates for city: {cityName}");
 
                         var response = await _weatherApi.GetLocationDataAsync(cityName);
-                        var location = JsonConvert.DeserializeObject<dynamic>(response);
+                        var locations = JsonConvert.DeserializeObject<List<LocationResponse>>(response);
 
-                        if (location.Count > 0)
+                        if (locations != null && locations.Count > 0)
                         {
-                            double latitude = location[0].lat;
-                            double longitude = location[0].lon;
+                            var location = locations[0];
+                            double latitude = location.Lat;
+                            double longitude = location.Lon;
 
                             if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180)
                             {
@@ -72,7 +73,7 @@ namespace WeatherApp.Services
                                 return (latitude, longitude);
                             }
                         }
-                        throw new KeyNotFoundException($"No coordinates found for city: {cityName}");
+                        throw new ArgumentException($"No coordinates found for city: {cityName}");
                     },
                     _cacheDuration
                     ); 

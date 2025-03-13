@@ -2,7 +2,7 @@
 
 namespace WeatherApp.Api
 {
-    public class WeatherApi
+    public class WeatherApi : IWeatherApi
     {
         private readonly ApiRequestHandler _apiRequestHandler;
         private readonly string _apiKey;

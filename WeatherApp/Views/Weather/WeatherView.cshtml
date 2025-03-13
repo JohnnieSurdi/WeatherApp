@@ -1,4 +1,7 @@
 ﻿@model WeatherApp.Models.Weather.WeatherResponse
+@{
+    var summary = ViewBag.Summary as string;
+}
 
 <h2>Weather Information for @Model.Location.CityName, @Model.Location.CountryName</h2>
 
@@ -7,6 +10,8 @@
     <p>Latitude: @Model.Location.Lat</p>
     <p>Longitude: @Model.Location.Lon</p>
 </div>
+
+<p>@summary</p>
 
 <div>
     <h3>Weather</h3>

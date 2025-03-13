@@ -21,37 +21,19 @@ namespace WeatherApp.Middleware
             }
             catch (Exception ex)
             {
-                _logger.Error("EX");
+                _logger.Error("EXception found by middleware");
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            context.Response.ContentType = "application/json";
+            _logger.Error($"Error handling in progress by middleware: {ex.Message}");
 
-            var (statusCode, errorType, errorMessage) = ex switch
-            {
-                ArgumentException or InvalidOperationException =>
-                    (HttpStatusCode.BadRequest, ErrorHadlerType.BadRequest, "Bad request."),
-                KeyNotFoundException =>
-                    (HttpStatusCode.NotFound, ErrorHadlerType.NotFound, "Not found."),
-                _ =>
-                    (HttpStatusCode.InternalServerError, ErrorHadlerType.InternalServerError, "InternalServerError")
-            };
+            context.Response.Clear();
+            context.Response.Redirect("/Home/Error", false);
 
-            context.Response.StatusCode = (int)statusCode;
-
-            var errorResponse = new
-            {
-                context.Response.StatusCode,
-                ErrorType = errorType.ToString(),
-                Message = errorMessage
-            };
-
-            _logger.Error($"Error: {errorType} - {errorMessage}");
-
-            return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(errorResponse));
+            return Task.CompletedTask;
         }
     }
 }

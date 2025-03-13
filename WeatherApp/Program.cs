@@ -6,6 +6,9 @@ using WeatherApp.Logging;
 using WeatherApp.Middleware;
 using WeatherApp.Repositories;
 using WeatherApp.Services;
+using Microsoft.SemanticKernel;
+using WeatherApp.Api;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,11 +30,24 @@ builder.Services.AddAWSService<IAmazonDynamoDB>();
 builder.Services.AddScoped<IDynamoDBContext, DynamoDBContext>();
 
 builder.Services.AddScoped<ApiRequestHandler>();
-builder.Services.AddScoped<WeatherApp.Api.WeatherApi>();
+builder.Services.AddScoped<IWeatherApi, WeatherApi>();
 builder.Services.AddScoped<IWeatherService, WeatherService>();
 builder.Services.AddScoped<IWeatherSearchRepository, WeatherSearchRepository>();
+builder.Services.AddScoped<ISummaryService, SummaryService>();
 
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
+
+#pragma warning disable SKEXP0070
+#pragma warning disable SKEXP0001
+builder.Services.AddSingleton<ConfigHelper>();
+
+builder.Services.AddKernel();
+var huggingFaceModel = builder.Configuration["HuggingFace:ModelName"];
+var huggingFaceApiKey = builder.Configuration["HuggingFace:ApiKey"];
+builder.Services.AddHuggingFaceChatCompletion(
+            huggingFaceModel,
+            apiKey: huggingFaceApiKey
+        );
 
 var app = builder.Build();
 

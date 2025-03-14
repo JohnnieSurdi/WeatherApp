@@ -1,25 +1,55 @@
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using log4net.Config;
+using WeatherApp.Helpers;
 using WeatherApp.Logging;
+using WeatherApp.Middleware;
+using WeatherApp.Repositories;
 using WeatherApp.Services;
+using Microsoft.SemanticKernel;
+using WeatherApp.Api;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<ICacheService, CacheService>();
 
 //Configure logger
 var log4netConfigFilePath = Path.Combine(builder.Environment.ContentRootPath, "Configs", "log4net.config");
 XmlConfigurator.Configure(new FileInfo(log4netConfigFilePath));
+builder.Services.AddSingleton<WeatherApp.Logging.ILogger, Logger>();
 
-//Register logger
-builder.Services.AddSingleton<IWeatherLogger, Logger>();
-
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add HttpClient to use for API calls
 builder.Services.AddHttpClient();
 
-// Add WeatherService for dependency injection
-builder.Services.AddScoped<WeatherApp.Api.WeatherApi>();
-builder.Services.AddScoped<WeatherService>();
+// Register AWS services
+var awsOptions = builder.Configuration.GetAWSOptions();
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonDynamoDB>();
+builder.Services.AddScoped<IDynamoDBContext, DynamoDBContext>();
+
+builder.Services.AddScoped<ApiRequestHandler>();
+builder.Services.AddScoped<IWeatherApi, WeatherApi>();
+builder.Services.AddScoped<IWeatherService, WeatherService>();
+builder.Services.AddScoped<IWeatherSearchRepository, WeatherSearchRepository>();
+builder.Services.AddScoped<ISummaryService, SummaryService>();
+builder.Services.AddScoped<IWeatherDataJsonHandler, WeatherDataJsonHandler>();
+builder.Services.AddScoped<ILocationService, LocationService>();
+
+builder.Services.AddScoped<ErrorHandlingMiddleware>();
+
+#pragma warning disable SKEXP0070
+#pragma warning disable SKEXP0001
+builder.Services.AddSingleton<ConfigHelper>();
+
+builder.Services.AddKernel();
+var huggingFaceModel = builder.Configuration["HuggingFace:ModelName"];
+var huggingFaceApiKey = builder.Configuration["HuggingFace:ApiKey"];
+builder.Services.AddHuggingFaceChatCompletion(
+            huggingFaceModel,
+            apiKey: huggingFaceApiKey
+        );
 
 var app = builder.Build();
 
@@ -30,7 +60,7 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

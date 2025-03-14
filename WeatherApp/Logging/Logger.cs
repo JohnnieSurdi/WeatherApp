@@ -2,9 +2,9 @@
 
 namespace WeatherApp.Logging
 {
-    public class Logger : IWeatherLogger
+    public class Logger : ILogger
     {
-        private static readonly ILog log = LogManager.GetLogger("WeatherLogger");
+        private static readonly ILog log = LogManager.GetLogger(typeof(Logger));
         public void Debug(string message)
         {
             log.Debug(message);

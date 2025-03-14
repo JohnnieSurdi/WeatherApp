@@ -4,65 +4,48 @@ using WeatherApp.Api;
 using WeatherApp.Mappers;
 using WeatherApp.Models.Weather;
 using WeatherApp.Logging;
+using WeatherApp.Repositories;
+using WeatherApp.Mappers.DBMappers;
+using WeatherApp.Models.Location;
+using WeatherApp.Helpers;
 
 namespace WeatherApp.Services
 {
-    public class WeatherService
+    public class WeatherService : IWeatherService
     {
-        private readonly WeatherApi _weatherApi;
-        private readonly IConfiguration _configuration;
-        private readonly IWeatherLogger _logger;
+        private readonly IWeatherApi _weatherApi;
+        private readonly WeatherApp.Logging.ILogger _logger;
+        private readonly IWeatherSearchRepository _weatherRepository;
+        private readonly ICacheService _cacheService;
+        private readonly IWeatherDataJsonHandler _weatherDataJsonHandler;
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(60);
 
-        public WeatherService(WeatherApi weatherApi, IConfiguration configuration, IWeatherLogger logger)
+        public WeatherService(IWeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService, IWeatherDataJsonHandler weatherDataJsonHandler)
         {
             _weatherApi = weatherApi;
-            _configuration = configuration;
             _logger = logger;
+            _weatherRepository = weatherRepository;
+            _cacheService = cacheService;
+            _weatherDataJsonHandler = weatherDataJsonHandler;
         }
 
         public async Task<WeatherResponse> GetWeatherAsync(double latitude, double longitude)
         {
-            try
-            {
-                _logger.Info($"Fetching weather for coordinates: {latitude}, {longitude}");
+            string cacheKey = $"weather:{latitude},{longitude}";
 
-                var content = await _weatherApi.GetWeatherDataAsync(latitude, longitude);
-                var jsonResponse = JObject.Parse(content);
-                return WeatherResponseMapper.MapFromJson(jsonResponse);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error fetching weather data: {ex.Message}");
-                throw new Exception("Error fetching weather data: " + ex.Message);
-            }
-        }
-
-        public async Task<(double? lat, double? lon)> SearchByCityAsync(string cityName)
-        {
-            try
-            {
-                _logger.Info($"Fetching data for city: {cityName}");
-                var response = await _weatherApi.GetLocationDataAsync(cityName);
-                var location = JsonConvert.DeserializeObject<dynamic>(response);
-
-                if (location.Count > 0)
-                {
-                    double latitude = location[0].lat;
-                    double longitude = location[0].lon;
-
-                    if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180)
+            return await _cacheService.GetCachedOrFetchAsync(
+                cacheKey,
+                async () =>
                     {
-                        return (latitude, longitude);
-                    }
-                }
+                        _logger.Info($"Fetching weather data for coordinates: {latitude}, {longitude}");
 
-                return (null, null);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error fetching data for city: {cityName}: {ex.Message}");
-                throw new Exception("Error fetching location data: " + ex.Message);
-            }
+                        var content = await _weatherApi.GetWeatherDataAsync(latitude, longitude);
+                        var weatherResponse = _weatherDataJsonHandler.ParseWeatherData(content);
+                        await _weatherRepository.SaveWeatherSearchRecordAsync(WeatherSearchRecordMapper.MapFromWeatherResponse(weatherResponse));
+                        return weatherResponse;
+                    },
+                    _cacheDuration
+            );
         }
     }
 }

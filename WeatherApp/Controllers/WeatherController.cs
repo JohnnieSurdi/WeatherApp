@@ -12,13 +12,15 @@ namespace WeatherApp.Controllers
         private readonly IWeatherSearchRepository _weatherSearchRepository;
         private readonly WeatherApp.Logging.ILogger _logger;
         private readonly ISummaryService _summaryService;
+        private readonly ILocationService _locationService;
 
-        public WeatherController(IWeatherService weatherService, IWeatherSearchRepository weatherSearchRepository, WeatherApp.Logging.ILogger logger, ISummaryService summaryService)
+        public WeatherController(IWeatherService weatherService, IWeatherSearchRepository weatherSearchRepository, WeatherApp.Logging.ILogger logger, ISummaryService summaryService, ILocationService locationService)
         {
             _weatherService = weatherService;
             _weatherSearchRepository = weatherSearchRepository;
             _logger = logger;
             _summaryService = summaryService;
+            _locationService = locationService;
         }
 
         public IActionResult Index()
@@ -38,7 +40,7 @@ namespace WeatherApp.Controllers
         {
             _logger.Info($"Searching for city: {cityName}");
 
-            var coordinates = await _weatherService.SearchByCityAsync(cityName);
+            var coordinates = await _locationService.SearchByCityAsync(cityName);
 
             if (coordinates.lat.HasValue && coordinates.lon.HasValue)
             {

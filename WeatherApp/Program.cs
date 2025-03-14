@@ -34,6 +34,8 @@ builder.Services.AddScoped<IWeatherApi, WeatherApi>();
 builder.Services.AddScoped<IWeatherService, WeatherService>();
 builder.Services.AddScoped<IWeatherSearchRepository, WeatherSearchRepository>();
 builder.Services.AddScoped<ISummaryService, SummaryService>();
+builder.Services.AddScoped<IWeatherDataJsonHandler, WeatherDataJsonHandler>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
 

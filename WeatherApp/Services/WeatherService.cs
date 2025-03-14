@@ -7,6 +7,7 @@ using WeatherApp.Logging;
 using WeatherApp.Repositories;
 using WeatherApp.Mappers.DBMappers;
 using WeatherApp.Models.Location;
+using WeatherApp.Helpers;
 
 namespace WeatherApp.Services
 {
@@ -16,14 +17,16 @@ namespace WeatherApp.Services
         private readonly WeatherApp.Logging.ILogger _logger;
         private readonly IWeatherSearchRepository _weatherRepository;
         private readonly ICacheService _cacheService;
+        private readonly IWeatherDataJsonHandler _weatherDataJsonHandler;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(60);
 
-        public WeatherService(IWeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService)
+        public WeatherService(IWeatherApi weatherApi, WeatherApp.Logging.ILogger logger, IWeatherSearchRepository weatherRepository, ICacheService cacheService, IWeatherDataJsonHandler weatherDataJsonHandler)
         {
             _weatherApi = weatherApi;
             _logger = logger;
             _weatherRepository = weatherRepository;
             _cacheService = cacheService;
+            _weatherDataJsonHandler = weatherDataJsonHandler;
         }
 
         public async Task<WeatherResponse> GetWeatherAsync(double latitude, double longitude)
@@ -37,46 +40,12 @@ namespace WeatherApp.Services
                         _logger.Info($"Fetching weather data for coordinates: {latitude}, {longitude}");
 
                         var content = await _weatherApi.GetWeatherDataAsync(latitude, longitude);
-                        var jsonResponse = JObject.Parse(content);
-
-                        var weatherResponse = WeatherResponseMapper.MapFromJson(jsonResponse);
-
-                        var record = WeatherSearchRecordMapper.MapFromWeatherResponse(weatherResponse);
-                        _weatherRepository.SaveWeatherSearchRecordAsync(record).Wait();
-
+                        var weatherResponse = _weatherDataJsonHandler.ParseWeatherData(content);
+                        await _weatherRepository.SaveWeatherSearchRecordAsync(WeatherSearchRecordMapper.MapFromWeatherResponse(weatherResponse));
                         return weatherResponse;
                     },
                     _cacheDuration
             );
-        }
-
-        public async Task<(double? lat, double? lon)> SearchByCityAsync(string cityName)
-        {
-                var cacheKey = $"coords-{cityName.ToLower()}";
-
-                return await _cacheService.GetCachedOrFetchAsync(cacheKey, async () =>
-                    {
-                        _logger.Info($"Fetching coordinates for city: {cityName}");
-
-                        var response = await _weatherApi.GetLocationDataAsync(cityName);
-                        var locations = JsonConvert.DeserializeObject<List<LocationResponse>>(response);
-
-                        if (locations != null && locations.Count > 0)
-                        {
-                            var location = locations[0];
-                            double latitude = location.Lat;
-                            double longitude = location.Lon;
-
-                            if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180)
-                            {
-                                _logger.Info($"Found coordinates for city {cityName}: {latitude}, {longitude}");
-                                return (latitude, longitude);
-                            }
-                        }
-                        throw new ArgumentException($"No coordinates found for city: {cityName}");
-                    },
-                    _cacheDuration
-                    ); 
         }
     }
 }
